@@ -17,12 +17,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ============ ШРИФТЫ ДЛЯ РУССКОГО ЯЗЫКА ============
+# Ищем шрифт в той же папке, где лежит app.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 try:
-    pdfmetrics.registerFont(TTFont('Arial', 'C:/Windows/Fonts/arial.ttf'))
-    pdfmetrics.registerFont(TTFont('Arial-Bold', 'C:/Windows/Fonts/arialbd.ttf'))
+    pdfmetrics.registerFont(TTFont('Arial', os.path.join(BASE_DIR, 'Arial.ttf')))
     FONT_NAME = 'Arial'
-    FONT_BOLD = 'Arial-Bold'
+    FONT_BOLD = 'Arial'
 except:
     FONT_NAME = 'Helvetica'
     FONT_BOLD = 'Helvetica-Bold'
@@ -155,7 +156,7 @@ def generate_pdf():
         ('RIGHTPADDING', (0, 0), (0, 0), 15),
         ('TOPPADDING', (0, 0), (0, 0), 30),
         # Отступы для правой колонки
-        ('LEFTPADDING', (1, 0), (1, 0), 15),
+        ('LEFTPADDING', (1, 0), (1, 0), 20 * mm),
         ('RIGHTPADDING', (1, 0), (1, 0), 15),
         ('TOPPADDING', (1, 0), (1, 0), 30),
     ]))
