@@ -15,7 +15,7 @@ app.config['SECRET_KEY'] = 'resume-builder-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL',
     'sqlite:///resume.db'
-).replace('postgres://', 'postgresql+psycopg://').replace('postgresql://', 'postgresql+psycopg://')
+).replace('postgres://', 'postgresql+psycopg2://').replace('postgresql://', 'postgresql+psycopg2://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
