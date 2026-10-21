@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+
+        /* Жестко задаем размеры листа A4 */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            display: block;
+        }
+
+        table.layout {
+            width: 210mm;
+            border-collapse: collapse;
+            table-layout: fixed; /* Заставляет соблюдать ширину колонок */
+        }
+
+        /* Левая колонка (Тёмная) */
+        td.sidebar {
+            width: 70mm; /* 35% от 210mm */
+            background-color: #1a1a2e;
+            color: #fff;
+            padding: 40px 20px;
+            vertical-align: top;
+        }
+
+        .name {
+            font-size: 24px;
+            color: #a88cff;
+            margin: 0 0 5px 0;
+            line-height: 1.2;
+        }
+
+        .contact {
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .sidebar h2 {
+            font-size: 14px;
+            color: #a88cff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .sidebar p, .sidebar li {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e0e0e0;
+        }
+
+        .skills-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .skills-list li {
+            margin-bottom: 8px;
+        }
+
+        /* Правая колонка (Светлая) */
+        td.main-content {
+            width: 140mm; /* 65% от 210mm */
+            background: #fff;
+            padding: 40px 30px;
+            vertical-align: top;
+        }
+
+        .main-content h2 {
+            font-size: 16px;
+            color: #1a1a2e;
+            border-bottom: 2px solid #a88cff;
+            padding-bottom: 5px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .main-content p {
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 5px 0;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <table class="layout">
+            <tr>
+                <!-- Левая колонка -->
+                <td class="sidebar">
+                    <div class="name">{{ data.name }}</div>
+                    <div class="contact">
+                        {{ data.email }}<br>
+                        {% if data.phone %}{{ data.phone }}{% endif %}
+                    </div>
+
+                    {% if data.skills %}
+                    <h2>Навыки</h2>
+                    <ul class="skills-list">
+                        {% for skill in data.skills.split(',') %}
+                        <li>• {{ skill.strip() }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </td>
+
+                <!-- Правая колонка -->
+                <td class="main-content">
+                    {% if data.summary %}
+                    <div class="section">
+                        <h2>О себе</h2>
+                        <p>{{ data.summary }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if data.experience %}
+                    <div class="section">
+                        <h2>Опыт работы</h2>
+                        <p>{{ data.experience }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if data.education %}
+                    <div class="section">
+                        <h2>Образование</h2>
+                        <p>{{ data.education }}</p>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

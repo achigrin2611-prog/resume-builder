@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создать резюме</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Создай свое резюме</h1>
+        <p class="subtitle">Заполни форму и скачай красивый PDF</p>
+
+        <form method="POST" action="/generate_pdf">
+            <div class="form-group">
+                <label>Имя и Фамилия</label>
+                <input type="text" name="name" placeholder="Иван Иванов" required value="{{ data.name if data else '' }}">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" placeholder="ivan@example.com" required value="{{ data.email if data else '' }}">
+                </div>
+                <div class="form-group">
+                    <label>Телефон</label>
+                    <input type="text" name="phone" placeholder="+7 999 123-45-67" value="{{ data.phone if data else '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>О себе (кратко)</label>
+                <textarea name="summary" rows="3" placeholder="Опытный разработчик...">{{ data.summary if data else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Опыт работы</label>
+                <textarea name="experience" rows="5" placeholder="Компания, должность, обязанности...">{{ data.experience if data else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Образование</label>
+                <textarea name="education" rows="3" placeholder="Университет, специальность, год...">{{ data.education if data else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Навыки (через запятую)</label>
+                <textarea name="skills" rows="3" placeholder="Python, Flask, SQL, HTML/CSS...">{{ data.skills if data else '' }}</textarea>
+            </div>
+
+            <button type="submit" class="btn">Скачать PDF</button>
+        </form>
+    </div>
+</body>
+</html>
