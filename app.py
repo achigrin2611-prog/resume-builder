@@ -12,7 +12,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'resume-builder-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///resume.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL',
+    'sqlite:///resume.db'
+).replace('postgres://', 'postgresql+psycopg://').replace('postgresql://', 'postgresql+psycopg://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
