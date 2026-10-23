@@ -22,16 +22,20 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ============ ШРИФТЫ ============
+# ============ ШРИФТЫ (ЖЕЛЕЗОБЕТОННО) ============
 try:
-    font_path = os.path.join(reportlab.__file__.rsplit('/', 1)[0], 'fonts', 'DejaVuSans.ttf')
-    font_bold_path = os.path.join(reportlab.__file__.rsplit('/', 1)[0], 'fonts', 'DejaVuSans-Bold.ttf')
+    # Берем шрифты из папки reportlab
+    base_path = os.path.dirname(reportlab.__file__)
+    font_path = os.path.join(base_path, 'fonts', 'DejaVuSans.ttf')
+    font_bold_path = os.path.join(base_path, 'fonts', 'DejaVuSans-Bold.ttf')
+
     pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
     pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', font_bold_path))
+
     FONT_NAME = 'DejaVuSans'
     FONT_BOLD = 'DejaVuSans-Bold'
 except Exception as e:
-    print(f"Ошибка загрузки шрифта: {e}")
+    print(f"ОШИБКА ШРИФТА: {e}")
     FONT_NAME = 'Helvetica'
     FONT_BOLD = 'Helvetica-Bold'
 
@@ -94,18 +98,18 @@ def generate_pdf():
     doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, rightMargin=0, leftMargin=0, topMargin=0, bottomMargin=0)
     styles = getSampleStyleSheet()
 
-    # Базовые стили
+    # Базовые стили (явно указываем FONT_NAME)
     style_name = ParagraphStyle('Name', parent=styles['Heading1'], fontName=FONT_BOLD, fontSize=22,
                                 textColor=colors.HexColor('#1a1a2e'), spaceAfter=5)
     style_contact = ParagraphStyle('Contact', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10,
                                    textColor=colors.HexColor('#555555'), spaceAfter=15)
 
-    # Стиль для заголовков с фиолетовой линией снизу
+    # Заголовки с фиолетовой линией
     style_section = ParagraphStyle('Section', parent=styles['Heading2'], fontName=FONT_BOLD, fontSize=14,
                                    textColor=colors.HexColor('#1a1a2e'), spaceBefore=10, spaceAfter=8)
     style_section.borderWidth = 0
     style_section.borderPadding = 5
-    style_section.borderBottom = 2
+    style_section.borderBottom = 1.5
     style_section.borderColor = colors.HexColor('#a88cff')
 
     style_text = ParagraphStyle('Text', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10, leading=14,
@@ -126,15 +130,13 @@ def generate_pdf():
     # ==========================================
 
     if data['template'] == 'classic':
-        # --- CLASSIC (Темная колонка) ---
         s_name = ParagraphStyle('N', parent=style_name, textColor=colors.white)
         s_contact = ParagraphStyle('C', parent=style_contact, textColor=colors.HexColor('#cccccc'))
 
-        # Стиль для заголовков в темной колонке (с фиолетовой линией)
+        # Для темной колонки заголовки без рамок, просто фиолетовый текст
         s_side_title = ParagraphStyle('ST', parent=style_section, fontSize=12, textColor=colors.HexColor('#a88cff'),
                                       spaceBefore=10)
-        s_side_title.borderBottom = 1
-        s_side_title.borderColor = colors.HexColor('#a88cff')
+        s_side_title.borderBottom = 0  # Убираем рамку, чтобы не глючило
 
         s_side_text = ParagraphStyle('STx', parent=style_text, textColor=colors.white)
 
@@ -169,7 +171,6 @@ def generate_pdf():
         doc.build([table], onFirstPage=bg_classic, onLaterPages=bg_classic)
 
     elif data['template'] == 'light':
-        # --- LIGHT (Светлый, минимализм) ---
         elements = [Paragraph(data['name'], style_name), Paragraph(contact_text, style_contact), Spacer(1, 5 * mm)]
         if summary_text: elements.extend(
             [Paragraph("О СЕБЕ", style_section), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
@@ -186,7 +187,6 @@ def generate_pdf():
         doc.build(elements)
 
     elif data['template'] == 'modern':
-        # --- MODERN (Современный с цветной шапкой) ---
         s_modern_name = ParagraphStyle('MN', parent=style_name, textColor=colors.white, alignment=1)
         s_modern_contact = ParagraphStyle('MC', parent=style_contact, textColor=colors.white, alignment=1)
 
