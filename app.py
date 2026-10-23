@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Ищем шрифт в той же папке, где лежит app.py
+# ============ ШРИФТЫ ДЛЯ РУССКОГО ЯЗЫКА ============
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
@@ -30,7 +30,6 @@ try:
 except:
     FONT_NAME = 'Helvetica'
     FONT_BOLD = 'Helvetica-Bold'
-
 
 # ============ МОДЕЛЬ ============
 class Resume(db.Model):
@@ -43,7 +42,6 @@ class Resume(db.Model):
     education = db.Column(db.Text)
     skills = db.Column(db.Text)
 
-
 # ============ РОУТЫ ============
 @app.route('/')
 def index():
@@ -55,7 +53,6 @@ def index():
             resume_data = {k: getattr(resume, k) for k in
                            ['name', 'email', 'phone', 'summary', 'experience', 'education', 'skills']}
     return render_template('index.html', data=resume_data)
-
 
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
@@ -86,7 +83,6 @@ def generate_pdf():
     # Генерация PDF
     pdf_buffer = io.BytesIO()
 
-    # Отступы страницы (0, чтобы темная полоса была впритык к краю)
     doc = SimpleDocTemplate(
         pdf_buffer,
         pagesize=A4,
@@ -96,7 +92,6 @@ def generate_pdf():
         bottomMargin=0
     )
 
-    # Стили
     styles = getSampleStyleSheet()
 
     # Стили для левой (темной) колонки
@@ -145,21 +140,18 @@ def generate_pdf():
         right_col.append(Paragraph("ОБРАЗОВАНИЕ", style_section))
         right_col.append(Paragraph(data['education'].replace('\n', '<br/>'), style_text))
 
-    # --- Таблица, которая держит колонки (без жесткой высоты) ---
+    # --- Таблица, которая держит колонки ---
     data_table = [[left_col, right_col]]
     table = Table(data_table, colWidths=[70 * mm, 140 * mm])
 
-    # Стили таблицы (цвета и отступы)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#1a1a2e')),  # Темный фон слева
-        ('BACKGROUND', (1, 0), (1, 0), colors.white),  # Белый фон справа
+        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#1a1a2e')),
+        ('BACKGROUND', (1, 0), (1, 0), colors.white),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        # Отступы для левой колонки
         ('LEFTPADDING', (0, 0), (0, 0), 15),
         ('RIGHTPADDING', (0, 0), (0, 0), 15),
         ('TOPPADDING', (0, 0), (0, 0), 30),
-        # Отступы для правой колонки
-        ('LEFTPADDING', (1, 0), (1, 0), 20 * mm),
+        ('LEFTPADDING', (1, 0), (1, 0), 20*mm),
         ('RIGHTPADDING', (1, 0), (1, 0), 15),
         ('TOPPADDING', (1, 0), (1, 0), 30),
     ]))
@@ -167,12 +159,10 @@ def generate_pdf():
     # Функция для рисования фона на весь лист
     def draw_background(canvas, doc):
         canvas.saveState()
-        # Рисуем темную полосу слева на всю высоту
         canvas.setFillColor(colors.HexColor('#1a1a2e'))
         canvas.rect(0, 0, 70 * mm, 297 * mm, fill=1, stroke=0)
         canvas.restoreState()
 
-    # Собираем PDF с фоновым рисунком
     doc.build([table], onFirstPage=draw_background)
 
     pdf = pdf_buffer.getvalue()
@@ -182,7 +172,6 @@ def generate_pdf():
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = 'attachment; filename=resume.pdf'
     return response
-
 
 # ============ ЗАПУСК ============
 if __name__ == '__main__':
