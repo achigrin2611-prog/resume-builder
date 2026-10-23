@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, make_response, session, redirect, url_for
+from flask import Flask, render_template, request, make_response, session
 from flask_sqlalchemy import SQLAlchemy
 import io
 import os
@@ -10,6 +10,8 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+import reportlab
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'resume-builder-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
@@ -20,16 +22,19 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ============ ШРИФТЫ ДЛЯ РУССКОГО ЯЗЫКА ============
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
+# ============ ШРИФТЫ ============
 try:
-    pdfmetrics.registerFont(TTFont('Arial', os.path.join(BASE_DIR, 'Arial.ttf')))
-    FONT_NAME = 'Arial'
-    FONT_BOLD = 'Arial'
-except:
+    font_path = os.path.join(reportlab.__file__.rsplit('/', 1)[0], 'fonts', 'DejaVuSans.ttf')
+    font_bold_path = os.path.join(reportlab.__file__.rsplit('/', 1)[0], 'fonts', 'DejaVuSans-Bold.ttf')
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', font_bold_path))
+    FONT_NAME = 'DejaVuSans'
+    FONT_BOLD = 'DejaVuSans-Bold'
+except Exception as e:
+    print(f"Ошибка загрузки шрифта: {e}")
     FONT_NAME = 'Helvetica'
     FONT_BOLD = 'Helvetica-Bold'
+
 
 # ============ МОДЕЛЬ ============
 class Resume(db.Model):
@@ -41,6 +46,7 @@ class Resume(db.Model):
     experience = db.Column(db.Text)
     education = db.Column(db.Text)
     skills = db.Column(db.Text)
+
 
 # ============ РОУТЫ ============
 @app.route('/')
@@ -54,6 +60,7 @@ def index():
                            ['name', 'email', 'phone', 'summary', 'experience', 'education', 'skills']}
     return render_template('index.html', data=resume_data)
 
+
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
     data = {
@@ -64,7 +71,7 @@ def generate_pdf():
         'experience': request.form.get('experience', ''),
         'education': request.form.get('education', ''),
         'skills': request.form.get('skills', ''),
-        'template': request.form.get('template', 'classic')  # <-- ВОТ ОНО, ЛОВИМ ШАБЛОН
+        'template': request.form.get('template', 'classic')
     }
 
     # Сохранение в БД (сессии)
@@ -77,7 +84,7 @@ def generate_pdf():
         db.session.add(resume)
 
     for k, v in data.items():
-        if k != 'template':  # Шаблон не сохраняем в БД
+        if k != 'template':
             setattr(resume, k, v)
     db.session.commit()
     session['resume_id'] = resume.id
@@ -92,8 +99,15 @@ def generate_pdf():
                                 textColor=colors.HexColor('#1a1a2e'), spaceAfter=5)
     style_contact = ParagraphStyle('Contact', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10,
                                    textColor=colors.HexColor('#555555'), spaceAfter=15)
+
+    # Стиль для заголовков с фиолетовой линией снизу
     style_section = ParagraphStyle('Section', parent=styles['Heading2'], fontName=FONT_BOLD, fontSize=14,
-                                   textColor=colors.HexColor('#1a1a2e'), spaceBefore=10, spaceAfter=5)
+                                   textColor=colors.HexColor('#1a1a2e'), spaceBefore=10, spaceAfter=8)
+    style_section.borderWidth = 0
+    style_section.borderPadding = 5
+    style_section.borderBottom = 2
+    style_section.borderColor = colors.HexColor('#a88cff')
+
     style_text = ParagraphStyle('Text', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10, leading=14,
                                 textColor=colors.HexColor('#333333'))
 
@@ -115,8 +129,13 @@ def generate_pdf():
         # --- CLASSIC (Темная колонка) ---
         s_name = ParagraphStyle('N', parent=style_name, textColor=colors.white)
         s_contact = ParagraphStyle('C', parent=style_contact, textColor=colors.HexColor('#cccccc'))
+
+        # Стиль для заголовков в темной колонке (с фиолетовой линией)
         s_side_title = ParagraphStyle('ST', parent=style_section, fontSize=12, textColor=colors.HexColor('#a88cff'),
                                       spaceBefore=10)
+        s_side_title.borderBottom = 1
+        s_side_title.borderColor = colors.HexColor('#a88cff')
+
         s_side_text = ParagraphStyle('STx', parent=style_text, textColor=colors.white)
 
         left_col = [Paragraph(data['name'], s_name), Paragraph(contact_text, s_contact)]
@@ -134,15 +153,17 @@ def generate_pdf():
         table = Table([[left_col, right_col]], colWidths=[70 * mm, 140 * mm])
         table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (0, 0), 15 * mm), ('RIGHTPADDING', (0, 0), (0, 0), 10 * mm),
+            ('LEFTPADDING', (0, 0), (0, 0), 15 * mm),
+            ('RIGHTPADDING', (0, 0), (0, 0), 10 * mm),
             ('TOPPADDING', (0, 0), (-1, -1), 30 * mm),
-            ('LEFTPADDING', (1, 0), (1, 0), 10 * mm), ('RIGHTPADDING', (1, 0), (1, 0), 15 * mm),
+            ('LEFTPADDING', (1, 0), (1, 0), 10 * mm),
+            ('RIGHTPADDING', (1, 0), (1, 0), 15 * mm),
         ]))
 
         def bg_classic(canvas, doc):
             canvas.saveState()
             canvas.setFillColor(colors.HexColor('#1a1a2e'))
-            canvas.rect(0, 0, 70 * mm, doc.pagesize[1], fill=1, stroke=0)
+            canvas.rect(0, 0, 70 * mm, 297 * mm, fill=1, stroke=0)
             canvas.restoreState()
 
         doc.build([table], onFirstPage=bg_classic, onLaterPages=bg_classic)
@@ -169,9 +190,8 @@ def generate_pdf():
         s_modern_name = ParagraphStyle('MN', parent=style_name, textColor=colors.white, alignment=1)
         s_modern_contact = ParagraphStyle('MC', parent=style_contact, textColor=colors.white, alignment=1)
 
-        header_table = Table(
-            [[Paragraph(data['name'], s_modern_name)], [Paragraph(contact_text, s_modern_contact)]],
-            colWidths=[210 * mm])
+        header_table = Table([[Paragraph(data['name'], s_modern_name)], [Paragraph(contact_text, s_modern_contact)]],
+                             colWidths=[210 * mm])
         header_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#2c3e50')),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -206,22 +226,6 @@ def generate_pdf():
     response.headers['Content-Disposition'] = 'attachment; filename=resume.pdf'
     return response
 
-    # Функция для рисования фона на весь лист
-    def draw_background(canvas, doc):
-        canvas.saveState()
-        canvas.setFillColor(colors.HexColor('#1a1a2e'))
-        canvas.rect(0, 0, 70 * mm, 297 * mm, fill=1, stroke=0)
-        canvas.restoreState()
-
-    doc.build([table], onFirstPage=draw_background)
-
-    pdf = pdf_buffer.getvalue()
-    pdf_buffer.close()
-
-    response = make_response(pdf)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'attachment; filename=resume.pdf'
-    return response
 
 # ============ ЗАПУСК ============
 if __name__ == '__main__':
