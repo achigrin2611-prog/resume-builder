@@ -87,3 +87,170 @@ textarea {
 .btn:active {
     transform: scale(0.98);
 }
+/* =========================================
+   БЛОК ВЫБОРА ШАБЛОНОВ (ПРЕВЬЮ)
+   ========================================= */
+
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+    margin-top: 10px;
+}
+
+.template-card {
+    border: 2px solid #333; /* Темная рамка по умолчанию */
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    text-align: center;
+    background-color: #1e1e2f;
+    transition: all 0.3s ease;
+    color: #fff;
+    position: relative;
+}
+
+.template-card:hover {
+    border-color: #a88cff;
+    transform: translateY(-2px);
+}
+
+/* Класс, который добавляется через JS при клике */
+.template-card.active {
+    border-color: #a88cff;
+    background-color: #2a2a40;
+    box-shadow: 0 0 15px rgba(168, 140, 255, 0.4);
+}
+
+/* Прячем сами радиокнопки, они нам нужны только для отправки формы */
+.template-card input[type="radio"] {
+    display: none;
+}
+
+.template-preview {
+    height: 90px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    background: #fff; /* База для превью */
+}
+
+/* =========================================
+   ПРЕВЬЮ: CLASSIC (Темная колонка)
+   ========================================= */
+.preview-classic .left-col {
+    width: 35%;
+    background: #1a1a2e;
+    height: 100%;
+}
+
+.preview-classic .right-col {
+    width: 65%;
+    background: #ffffff;
+    height: 100%;
+    padding: 10px;
+}
+
+/* Рисуем "текст" линиями */
+.preview-classic .right-col::before,
+.preview-classic .right-col::after {
+    content: '';
+    display: block;
+    height: 4px;
+    background: #ddd;
+    margin-bottom: 6px;
+    border-radius: 2px;
+}
+.preview-classic .right-col::before { width: 60%; background: #1a1a2e; }
+.preview-classic .right-col::after { width: 80%; }
+
+/* =========================================
+   ПРЕВЬЮ: LIGHT (Светлый минимализм)
+   ========================================= */
+.preview-light {
+    background: #ffffff;
+    border: 1px solid #ddd;
+    flex-direction: column;
+    padding: 15px;
+}
+
+.preview-light .line-title {
+    height: 6px;
+    background: #1a1a2e;
+    width: 50%;
+    margin-bottom: 8px;
+    border-radius: 3px;
+}
+
+.preview-light .line-text {
+    height: 3px;
+    background: #ccc;
+    width: 80%;
+    margin-bottom: 4px;
+    border-radius: 2px;
+}
+
+.preview-light .line-accent {
+    height: 3px;
+    background: #a88cff;
+    width: 30%;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    border-radius: 2px;
+}
+
+/* =========================================
+   ПРЕВЬЮ: MODERN (Цветная шапка)
+   ========================================= */
+.preview-modern {
+    background: #f4f4f9;
+    flex-direction: column;
+}
+
+.preview-modern .top-header {
+    height: 35px;
+    background: #2c3e50;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.preview-modern .top-header .header-line {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    width: 40%;
+    border-radius: 2px;
+}
+
+.preview-modern .top-header .header-line.small {
+    width: 25%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.preview-modern .content-area {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.preview-modern .content-line {
+    height: 3px;
+    background: #ccc;
+    width: 90%;
+    border-radius: 2px;
+}
+
+.preview-modern .content-line.title {
+    background: #2c3e50;
+    width: 40%;
+    height: 4px;
+    margin-top: 5px;
+}

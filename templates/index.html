@@ -23,9 +23,59 @@
 <body>
     <div class="container">
         <h1>Создай свое резюме</h1>
-        <p class="subtitle">Заполни форму и скачай красивый PDF</p>
+        <p class="subtitle">Заполни форму, выбери стиль и скачай красивый PDF</p>
 
         <form method="POST" action="/generate_pdf">
+
+            <!-- Блок выбора шаблона -->
+            <div class="form-group">
+                <label>Выбери стиль резюме</label>
+
+                <div class="templates-grid">
+
+                    <!-- Classic -->
+                    <label class="template-card active" onclick="selectTemplate(this)">
+                        <input type="radio" name="template" value="classic" checked>
+                        <div class="template-preview preview-classic">
+                            <div class="left-col"></div>
+                            <div class="right-col"></div>
+                        </div>
+                        <span>Classic</span>
+                    </label>
+
+                    <!-- Light -->
+                    <label class="template-card" onclick="selectTemplate(this)">
+                        <input type="radio" name="template" value="light">
+                        <div class="template-preview preview-light">
+                            <div class="line-title"></div>
+                            <div class="line-text"></div>
+                            <div class="line-text"></div>
+                            <div class="line-accent"></div>
+                            <div class="line-text"></div>
+                        </div>
+                        <span>Light</span>
+                    </label>
+
+                    <!-- Modern -->
+                    <label class="template-card" onclick="selectTemplate(this)">
+                        <input type="radio" name="template" value="modern">
+                        <div class="template-preview preview-modern">
+                            <div class="top-header">
+                                <div class="header-line"></div>
+                                <div class="header-line small"></div>
+                            </div>
+                            <div class="content-area">
+                                <div class="content-line title"></div>
+                                <div class="content-line"></div>
+                                <div class="content-line"></div>
+                            </div>
+                        </div>
+                        <span>Modern</span>
+                    </label>
+
+                </div>
+            </div>
+
             <div class="form-group">
                 <label>Имя и Фамилия</label>
                 <input type="text" name="name" placeholder="Иван Иванов" required value="{{ data.name if data else '' }}">
@@ -65,5 +115,17 @@
             <button type="submit" class="btn">Скачать PDF</button>
         </form>
     </div>
+
+    <script>
+        // Скрипт для переключения активной карточки
+        function selectTemplate(element) {
+            // Убираем класс active у всех карточек
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            // Добавляем класс active выбранной
+            element.classList.add('active');
+        }
+    </script>
 </body>
 </html>
