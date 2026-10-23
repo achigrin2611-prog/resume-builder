@@ -64,6 +64,7 @@ def generate_pdf():
         'experience': request.form.get('experience', ''),
         'education': request.form.get('education', ''),
         'skills': request.form.get('skills', ''),
+        'template': request.form.get('template', 'classic')  # <-- ВОТ ОНО, ЛОВИМ ШАБЛОН
     }
 
     # Сохранение в БД (сессии)
@@ -76,85 +77,134 @@ def generate_pdf():
         db.session.add(resume)
 
     for k, v in data.items():
-        setattr(resume, k, v)
+        if k != 'template':  # Шаблон не сохраняем в БД
+            setattr(resume, k, v)
     db.session.commit()
     session['resume_id'] = resume.id
 
     # Генерация PDF
     pdf_buffer = io.BytesIO()
-
-    doc = SimpleDocTemplate(
-        pdf_buffer,
-        pagesize=A4,
-        rightMargin=0,
-        leftMargin=0,
-        topMargin=0,
-        bottomMargin=0
-    )
-
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, rightMargin=0, leftMargin=0, topMargin=0, bottomMargin=0)
     styles = getSampleStyleSheet()
 
-    # Стили для левой (темной) колонки
-    style_name = ParagraphStyle('Name', parent=styles['Heading1'], fontName=FONT_BOLD, fontSize=18,
-                                textColor=colors.white, spaceAfter=5, leading=22)
+    # Базовые стили
+    style_name = ParagraphStyle('Name', parent=styles['Heading1'], fontName=FONT_BOLD, fontSize=22,
+                                textColor=colors.HexColor('#1a1a2e'), spaceAfter=5)
     style_contact = ParagraphStyle('Contact', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10,
-                                   textColor=colors.HexColor('#cccccc'), spaceAfter=15)
-    style_sidebar_title = ParagraphStyle('SidebarTitle', parent=styles['Heading2'], fontName=FONT_BOLD, fontSize=12,
-                                         textColor=colors.HexColor('#a88cff'), spaceBefore=10, spaceAfter=5)
-    style_sidebar_text = ParagraphStyle('SidebarText', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10,
-                                        textColor=colors.white, leading=14)
-
-    # Стили для правой (белой) колонки
+                                   textColor=colors.HexColor('#555555'), spaceAfter=15)
     style_section = ParagraphStyle('Section', parent=styles['Heading2'], fontName=FONT_BOLD, fontSize=14,
                                    textColor=colors.HexColor('#1a1a2e'), spaceBefore=10, spaceAfter=5)
     style_text = ParagraphStyle('Text', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10, leading=14,
-                                textColor=colors.HexColor('#444444'))
+                                textColor=colors.HexColor('#333333'))
 
-    # --- Контент ЛЕВОЙ колонки ---
-    left_col = []
-    left_col.append(Paragraph(data['name'], style_name))
+    # Подготовка текста
+    skills_list = "".join([f"• {s.strip()}<br/>" for s in data['skills'].split(',')]) if data['skills'] else ""
+    summary_text = data['summary'].replace('\n', '<br/>') if data['summary'] else ""
+    exp_text = data['experience'].replace('\n', '<br/>') if data['experience'] else ""
+    edu_text = data['education'].replace('\n', '<br/>') if data['education'] else ""
 
     contact_text = f"{data['email']}"
     if data['phone']:
         contact_text += f"<br/>{data['phone']}"
-    left_col.append(Paragraph(contact_text, style_contact))
 
-    if data['skills']:
-        left_col.append(Paragraph("НАВЫКИ", style_sidebar_title))
-        skills_list = [f"• {s.strip()}" for s in data['skills'].split(',')]
-        left_col.append(Paragraph("<br/>".join(skills_list), style_sidebar_text))
+    # ==========================================
+    # ЛОГИКА ВЫБОРА ШАБЛОНА
+    # ==========================================
 
-    # --- Контент ПРАВОЙ колонки ---
-    right_col = []
-    if data['summary']:
-        right_col.append(Paragraph("О СЕБЕ", style_section))
-        right_col.append(Paragraph(data['summary'].replace('\n', '<br/>'), style_text))
-        right_col.append(Spacer(1, 5 * mm))
+    if data['template'] == 'classic':
+        # --- CLASSIC (Темная колонка) ---
+        s_name = ParagraphStyle('N', parent=style_name, textColor=colors.white)
+        s_contact = ParagraphStyle('C', parent=style_contact, textColor=colors.HexColor('#cccccc'))
+        s_side_title = ParagraphStyle('ST', parent=style_section, fontSize=12, textColor=colors.HexColor('#a88cff'),
+                                      spaceBefore=10)
+        s_side_text = ParagraphStyle('STx', parent=style_text, textColor=colors.white)
 
-    if data['experience']:
-        right_col.append(Paragraph("ОПЫТ РАБОТЫ", style_section))
-        right_col.append(Paragraph(data['experience'].replace('\n', '<br/>'), style_text))
-        right_col.append(Spacer(1, 5 * mm))
+        left_col = [Paragraph(data['name'], s_name), Paragraph(contact_text, s_contact)]
+        if skills_list:
+            left_col.append(Paragraph("НАВЫКИ", s_side_title))
+            left_col.append(Paragraph(skills_list, s_side_text))
 
-    if data['education']:
-        right_col.append(Paragraph("ОБРАЗОВАНИЕ", style_section))
-        right_col.append(Paragraph(data['education'].replace('\n', '<br/>'), style_text))
+        right_col = []
+        if summary_text: right_col.extend(
+            [Paragraph("О СЕБЕ", style_section), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
+        if exp_text: right_col.extend(
+            [Paragraph("ОПЫТ РАБОТЫ", style_section), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
+        if edu_text: right_col.extend([Paragraph("ОБРАЗОВАНИЕ", style_section), Paragraph(edu_text, style_text)])
 
-    # --- Таблица, которая держит колонки ---
-    data_table = [[left_col, right_col]]
-    table = Table(data_table, colWidths=[70 * mm, 140 * mm])
+        table = Table([[left_col, right_col]], colWidths=[70 * mm, 140 * mm])
+        table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (0, 0), 15 * mm), ('RIGHTPADDING', (0, 0), (0, 0), 10 * mm),
+            ('TOPPADDING', (0, 0), (-1, -1), 30 * mm),
+            ('LEFTPADDING', (1, 0), (1, 0), 10 * mm), ('RIGHTPADDING', (1, 0), (1, 0), 15 * mm),
+        ]))
 
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#1a1a2e')),
-        ('BACKGROUND', (1, 0), (1, 0), colors.white),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (0, 0), 15),
-        ('RIGHTPADDING', (0, 0), (0, 0), 15),
-        ('TOPPADDING', (0, 0), (0, 0), 30),
-        ('LEFTPADDING', (1, 0), (1, 0), 20*mm),
-        ('RIGHTPADDING', (1, 0), (1, 0), 15),
-        ('TOPPADDING', (1, 0), (1, 0), 30),
-    ]))
+        def bg_classic(canvas, doc):
+            canvas.saveState()
+            canvas.setFillColor(colors.HexColor('#1a1a2e'))
+            canvas.rect(0, 0, 70 * mm, doc.pagesize[1], fill=1, stroke=0)
+            canvas.restoreState()
+
+        doc.build([table], onFirstPage=bg_classic, onLaterPages=bg_classic)
+
+    elif data['template'] == 'light':
+        # --- LIGHT (Светлый, минимализм) ---
+        elements = [Paragraph(data['name'], style_name), Paragraph(contact_text, style_contact), Spacer(1, 5 * mm)]
+        if summary_text: elements.extend(
+            [Paragraph("О СЕБЕ", style_section), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
+        if exp_text: elements.extend(
+            [Paragraph("ОПЫТ РАБОТЫ", style_section), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
+        if edu_text: elements.extend(
+            [Paragraph("ОБРАЗОВАНИЕ", style_section), Paragraph(edu_text, style_text), Spacer(1, 5 * mm)])
+        if skills_list: elements.extend([Paragraph("НАВЫКИ", style_section), Paragraph(skills_list, style_text)])
+
+        doc.leftMargin = 20 * mm
+        doc.rightMargin = 20 * mm
+        doc.topMargin = 20 * mm
+        doc.bottomMargin = 20 * mm
+        doc.build(elements)
+
+    elif data['template'] == 'modern':
+        # --- MODERN (Современный с цветной шапкой) ---
+        s_modern_name = ParagraphStyle('MN', parent=style_name, textColor=colors.white, alignment=1)
+        s_modern_contact = ParagraphStyle('MC', parent=style_contact, textColor=colors.white, alignment=1)
+
+        header_table = Table(
+            [[Paragraph(data['name'], s_modern_name)], [Paragraph(contact_text, s_modern_contact)]],
+            colWidths=[210 * mm])
+        header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#2c3e50')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 20 * mm),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10 * mm),
+        ]))
+
+        content_elements = []
+        if summary_text: content_elements.extend(
+            [Paragraph("О СЕБЕ", style_section), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
+        if exp_text: content_elements.extend(
+            [Paragraph("ОПЫТ РАБОТЫ", style_section), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
+        if edu_text: content_elements.extend(
+            [Paragraph("ОБРАЗОВАНИЕ", style_section), Paragraph(edu_text, style_text), Spacer(1, 5 * mm)])
+        if skills_list: content_elements.extend(
+            [Paragraph("НАВЫКИ", style_section), Paragraph(skills_list, style_text)])
+
+        content_table = Table([[content_elements]], colWidths=[210 * mm])
+        content_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 20 * mm),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 20 * mm),
+            ('TOPPADDING', (0, 0), (-1, -1), 10 * mm),
+        ]))
+
+        doc.build([header_table, content_table])
+
+    # Отдаем PDF
+    pdf = pdf_buffer.getvalue()
+    pdf_buffer.close()
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=resume.pdf'
+    return response
 
     # Функция для рисования фона на весь лист
     def draw_background(canvas, doc):
