@@ -4,7 +4,7 @@ import io
 import os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
@@ -22,11 +22,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ============ ШРИФТЫ ============
+# ============ ШРИФТЫ (Arial) ============
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    # Ищем Arial.ttf прямо в папке проекта (как было изначально)
+    # Ищем Arial.ttf прямо в папке проекта
     font_path = os.path.join(BASE_DIR, 'Arial.ttf')
     pdfmetrics.registerFont(TTFont('Arial', font_path))
 
@@ -39,7 +39,7 @@ try:
         FONT_BOLD = 'Arial'  # Если жирного нет, пишем обычным
 
     FONT_NAME = 'Arial'
-    print("✅ Шрифт Arial успешно загружен из папки проекта!")
+    print("✅ Шрифт Arial успешно загружен!")
 except Exception as e:
     print(f"❌ Ошибка загрузки Arial: {e}. Использую Helvetica.")
     FONT_NAME = 'Helvetica'
@@ -104,22 +104,22 @@ def generate_pdf():
     doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, rightMargin=0, leftMargin=0, topMargin=0, bottomMargin=0)
     styles = getSampleStyleSheet()
 
-    # Базовые стили (явно указываем FONT_NAME)
+    # Базовые стили
     style_name = ParagraphStyle('Name', parent=styles['Heading1'], fontName=FONT_BOLD, fontSize=22,
                                 textColor=colors.HexColor('#1a1a2e'), spaceAfter=5)
     style_contact = ParagraphStyle('Contact', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10,
                                    textColor=colors.HexColor('#555555'), spaceAfter=15)
 
-    # Заголовки с фиолетовой линией
+    # Стиль для заголовков (без встроенных рамок, линии рисуем отдельно)
     style_section = ParagraphStyle('Section', parent=styles['Heading2'], fontName=FONT_BOLD, fontSize=14,
-                                   textColor=colors.HexColor('#1a1a2e'), spaceBefore=10, spaceAfter=8)
-    style_section.borderWidth = 0
-    style_section.borderPadding = 5
-    style_section.borderBottom = 1.5
-    style_section.borderColor = colors.HexColor('#a88cff')
+                                   textColor=colors.HexColor('#1a1a2e'), spaceBefore=10, spaceAfter=2)
 
     style_text = ParagraphStyle('Text', parent=styles['Normal'], fontName=FONT_NAME, fontSize=10, leading=14,
                                 textColor=colors.HexColor('#333333'))
+
+    # Функция для создания фиолетовой линии под заголовком
+    def make_line():
+        return HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#a88cff'), spaceBefore=0, spaceAfter=5)
 
     # Подготовка текста
     skills_list = "".join([f"• {s.strip()}<br/>" for s in data['skills'].split(',')]) if data['skills'] else ""
@@ -139,24 +139,25 @@ def generate_pdf():
         s_name = ParagraphStyle('N', parent=style_name, textColor=colors.white)
         s_contact = ParagraphStyle('C', parent=style_contact, textColor=colors.HexColor('#cccccc'))
 
-        # Для темной колонки заголовки без рамок, просто фиолетовый текст
+        # Заголовки в темной колонке
         s_side_title = ParagraphStyle('ST', parent=style_section, fontSize=12, textColor=colors.HexColor('#a88cff'),
                                       spaceBefore=10)
-        s_side_title.borderBottom = 0  # Убираем рамку, чтобы не глючило
-
         s_side_text = ParagraphStyle('STx', parent=style_text, textColor=colors.white)
 
         left_col = [Paragraph(data['name'], s_name), Paragraph(contact_text, s_contact)]
         if skills_list:
             left_col.append(Paragraph("НАВЫКИ", s_side_title))
+            left_col.append(
+                HRFlowable(width="100%", thickness=1, color=colors.HexColor('#a88cff'), spaceBefore=0, spaceAfter=5))
             left_col.append(Paragraph(skills_list, s_side_text))
 
         right_col = []
         if summary_text: right_col.extend(
-            [Paragraph("О СЕБЕ", style_section), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
+            [Paragraph("О СЕБЕ", style_section), make_line(), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
         if exp_text: right_col.extend(
-            [Paragraph("ОПЫТ РАБОТЫ", style_section), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
-        if edu_text: right_col.extend([Paragraph("ОБРАЗОВАНИЕ", style_section), Paragraph(edu_text, style_text)])
+            [Paragraph("ОПЫТ РАБОТЫ", style_section), make_line(), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
+        if edu_text: right_col.extend(
+            [Paragraph("ОБРАЗОВАНИЕ", style_section), make_line(), Paragraph(edu_text, style_text)])
 
         table = Table([[left_col, right_col]], colWidths=[70 * mm, 140 * mm])
         table.setStyle(TableStyle([
@@ -178,13 +179,15 @@ def generate_pdf():
 
     elif data['template'] == 'light':
         elements = [Paragraph(data['name'], style_name), Paragraph(contact_text, style_contact), Spacer(1, 5 * mm)]
+
         if summary_text: elements.extend(
-            [Paragraph("О СЕБЕ", style_section), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
+            [Paragraph("О СЕБЕ", style_section), make_line(), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
         if exp_text: elements.extend(
-            [Paragraph("ОПЫТ РАБОТЫ", style_section), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
+            [Paragraph("ОПЫТ РАБОТЫ", style_section), make_line(), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
         if edu_text: elements.extend(
-            [Paragraph("ОБРАЗОВАНИЕ", style_section), Paragraph(edu_text, style_text), Spacer(1, 5 * mm)])
-        if skills_list: elements.extend([Paragraph("НАВЫКИ", style_section), Paragraph(skills_list, style_text)])
+            [Paragraph("ОБРАЗОВАНИЕ", style_section), make_line(), Paragraph(edu_text, style_text), Spacer(1, 5 * mm)])
+        if skills_list: elements.extend(
+            [Paragraph("НАВЫКИ", style_section), make_line(), Paragraph(skills_list, style_text)])
 
         doc.leftMargin = 20 * mm
         doc.rightMargin = 20 * mm
@@ -207,13 +210,13 @@ def generate_pdf():
 
         content_elements = []
         if summary_text: content_elements.extend(
-            [Paragraph("О СЕБЕ", style_section), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
+            [Paragraph("О СЕБЕ", style_section), make_line(), Paragraph(summary_text, style_text), Spacer(1, 5 * mm)])
         if exp_text: content_elements.extend(
-            [Paragraph("ОПЫТ РАБОТЫ", style_section), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
+            [Paragraph("ОПЫТ РАБОТЫ", style_section), make_line(), Paragraph(exp_text, style_text), Spacer(1, 5 * mm)])
         if edu_text: content_elements.extend(
-            [Paragraph("ОБРАЗОВАНИЕ", style_section), Paragraph(edu_text, style_text), Spacer(1, 5 * mm)])
+            [Paragraph("ОБРАЗОВАНИЕ", style_section), make_line(), Paragraph(edu_text, style_text), Spacer(1, 5 * mm)])
         if skills_list: content_elements.extend(
-            [Paragraph("НАВЫКИ", style_section), Paragraph(skills_list, style_text)])
+            [Paragraph("НАВЫКИ", style_section), make_line(), Paragraph(skills_list, style_text)])
 
         content_table = Table([[content_elements]], colWidths=[210 * mm])
         content_table.setStyle(TableStyle([
