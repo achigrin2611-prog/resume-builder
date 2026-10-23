@@ -22,20 +22,26 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ============ ШРИФТЫ (ЖЕЛЕЗОБЕТОННО) ============
+# ============ ШРИФТЫ ============
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 try:
-    # Берем шрифты из папки reportlab
-    base_path = os.path.dirname(reportlab.__file__)
-    font_path = os.path.join(base_path, 'fonts', 'DejaVuSans.ttf')
-    font_bold_path = os.path.join(base_path, 'fonts', 'DejaVuSans-Bold.ttf')
+    # Ищем Arial.ttf прямо в папке проекта (как было изначально)
+    font_path = os.path.join(BASE_DIR, 'Arial.ttf')
+    pdfmetrics.registerFont(TTFont('Arial', font_path))
 
-    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
-    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', font_bold_path))
+    # Пытаемся найти жирный Arial, если нет — используем обычный
+    font_bold_path = os.path.join(BASE_DIR, 'Arial-Bold.ttf')
+    if os.path.exists(font_bold_path):
+        pdfmetrics.registerFont(TTFont('Arial-Bold', font_bold_path))
+        FONT_BOLD = 'Arial-Bold'
+    else:
+        FONT_BOLD = 'Arial'  # Если жирного нет, пишем обычным
 
-    FONT_NAME = 'DejaVuSans'
-    FONT_BOLD = 'DejaVuSans-Bold'
+    FONT_NAME = 'Arial'
+    print("✅ Шрифт Arial успешно загружен из папки проекта!")
 except Exception as e:
-    print(f"ОШИБКА ШРИФТА: {e}")
+    print(f"❌ Ошибка загрузки Arial: {e}. Использую Helvetica.")
     FONT_NAME = 'Helvetica'
     FONT_BOLD = 'Helvetica-Bold'
 
